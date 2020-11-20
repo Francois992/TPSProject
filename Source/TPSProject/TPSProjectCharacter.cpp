@@ -8,6 +8,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "PaintShoot.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ATPSProjectCharacter
@@ -133,6 +134,15 @@ void ATPSProjectCharacter::MoveRight(float Value)
 	}
 }
 
+void ATPSProjectCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	SpawnPosition = GetActorLocation();
+	// ...
+
+}
+
 void ATPSProjectCharacter::CheckForItem() {
 
 	if (heldItem == nullptr) {
@@ -144,17 +154,23 @@ void ATPSProjectCharacter::CheckForItem() {
 	}
 }
 
+void ATPSProjectCharacter::ShootPaint() {
+	FActorSpawnParameters SpawnInfo;
+	GetWorld()->SpawnActor<APaintShoot>(Bullet, GetActorLocation() + GetActorForwardVector() * 150, GetActorRotation(), SpawnInfo);
+}
+
 void ATPSProjectCharacter::HoldItem() {
 
 	FHitResult hitResult;
-	FCollisionQueryParams CollisionParameters();
+	FCollisionQueryParams CollisionParameters;
+	
 	FAttachmentTransformRules attachRules(EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld, EAttachmentRule::KeepRelative, true);
 	FVector endVector = GetActorLocation() + (GetActorForwardVector() * DistanceHold);
 	
-	if (ActorLineTraceSingle(hitResult, GetActorLocation(), endVector, ECC_Visibility, CollisionParameters)) {
+	if (GetWorld()->LineTraceSingleByChannel(hitResult, GetActorLocation(), endVector, ECC_Visibility, CollisionParameters)) {
 		if (hitResult.GetActor()->Tags.Contains("Holdable")) {
 			heldItem = hitResult.GetActor();
-			UMeshComponent* ItemMesh = heldItem->FindComponentByClass<UMeshComponent>();
+			UStaticMeshComponent* ItemMesh = heldItem->FindComponentByClass<UStaticMeshComponent>();
 			ItemMesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
 			heldItem->AttachToActor(this, attachRules);				
 			heldItem->SetActorRelativeLocation(ItemPos);
@@ -168,8 +184,25 @@ void ATPSProjectCharacter::DropItem() {
 	FDetachmentTransformRules DetachRules(EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, EDetachmentRule::KeepRelative, false);
 
 	heldItem->DetachFromActor(DetachRules);
-	UMeshComponent* ItemMesh = heldItem->FindComponentByClass<UMeshComponent>();
+	UStaticMeshComponent* ItemMesh = heldItem->FindComponentByClass<UStaticMeshComponent>();
 	ItemMesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
 	ItemMesh->SetSimulatePhysics(true);
 	heldItem = nullptr;
 }
+
+void ATPSProjectCharacter::KillPlayer() {
+	RespawnPlayer();
+	Destroy();
+}
+void ATPSProjectCharacter::RespawnPlayer() {
+
+	AController* controller = GetController();
+	controller->UnPossess();
+		
+
+	FRotator Rotation(0.0f, 0.0f, 0.0f);
+	FActorSpawnParameters SpawnInfo;
+	ACharacter* character = GetWorld()->SpawnActor<ATPSProjectCharacter>(this->GetClass(), SpawnPosition, Rotation, SpawnInfo);
+	controller->Possess(character);
+}
+

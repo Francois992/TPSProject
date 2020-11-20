@@ -3,8 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "PaintShoot.h"
 #include "GameFramework/Character.h"
 #include "TPSProjectCharacter.generated.h"
+
 
 UCLASS(config=Game)
 class ATPSProjectCharacter : public ACharacter
@@ -35,7 +37,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = Hold)
 	FVector ItemPos;
 
+	UPROPERTY(EditAnywhere, Category = Shoot)
+		TSubclassOf<APaintShoot> Bullet;
+
 protected:
+
+	virtual void BeginPlay() override;
 
 	/** Resets HMD orientation in VR. */
 	void OnResetVR();
@@ -64,13 +71,21 @@ protected:
 	/** Handler for when a touch input stops. */
 	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
+	FVector SpawnPosition;
 	AActor* heldItem;
 
 	UFUNCTION(BlueprintCallable)
 	void CheckForItem();
 
+	UFUNCTION(BlueprintCallable)
+	void ShootPaint();
+
 	void HoldItem();
 	void DropItem();
+
+	UFUNCTION(BlueprintCallable)
+	void KillPlayer();
+	void RespawnPlayer();
 
 protected:
 	// APawn interface
